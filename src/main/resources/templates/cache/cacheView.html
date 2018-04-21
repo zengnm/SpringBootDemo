@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="common/header :: common-header"></head>
+<body>
+<div th:replace="common/nav :: common-nav"></div>
+<div class="container-fluid">
+    <div class="row">
+        <div th:replace="common/left :: common-left"></div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <form class="form-horizontal" id="cacheForm">
+                <div class="row" id="umg_main_div">
+                    <div class="form-group">
+                        <label for="kp" class="col-sm-3 control-label">cacheName:</label>
+                        <div class="col-sm-8" id="kp">
+                            <label class="checkbox-inline">
+                                <input type="radio" name="cacheName" value="" checked="checked"/>无
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="radio" name="cacheName" value="test"/>test
+                            </label>
+                            <label class="checkbox-inline">
+                                <input type="radio" name="cacheName" value="test1"/>test1
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" id="keyRow">
+                    <label for="key" class="col-sm-3 control-label">cache key:</label>
+                    <div class="col-sm-5">
+                        <input maxlength="50" id="key" class="form-control" placeholder="请输入键"/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="value" class="col-sm-3 control-label">cache value:</label>
+                    <div class="col-sm-5">
+                        <textarea id="value" rows="3" class="form-control" placeholder="请输入值"></textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-offset-3 col-sm-5">
+                        <div class="notice">
+                            <span id="errorNote" style="color:red;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-3 col-sm-5">
+                        <button type="button" class="btn btn-default" id="queryCache">查询</button>
+                        <button type="button" class="btn btn-default" id="setCache">设置</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div th:replace="common/footer :: common-footer"></div>
+<script src="js/custom/ajax.js"></script>
+</body>
+<script>
+    $(document).ready(function () {
+        $(":radio[name=cacheName]").change(changeCacheName);
+        $("#cacheForm #queryCache").bind("click", queryCache);
+        $("#cacheForm #setCache").bind("click", setCache);
+    });
+
+    function changeCacheName() {
+        var cacheName = $(":radio[name=cacheName]:checked").val().trim();
+        if(cacheName === "test"){
+            $("#keyRow").hide();
+        }else {
+            $("#keyRow").show();
+        }
+        $("#cacheForm #value").val("");
+        $("#cacheForm #errorNote").html("")
+    }
+
+    function queryCache() {
+        var key = $("#cacheForm #key").val().trim();
+        var cacheName = $(":radio[name=cacheName]:checked").val().trim();
+        var url;
+        if (key === "" && cacheName !== "test") {
+            $("#cacheForm #errorNote").html("查询失败，cache key不能为空");
+            return;
+        }
+        if (cacheName === "") {
+            url = "/get/" + key;
+        } else if (cacheName === "test") {
+            url = "/getTest";
+        } else {
+            url = "/getTest1/" + key;
+        }
+        $("#cacheForm #errorNote").html("");
+        requestData(url,
+            function (data) {
+                if(data === ""){
+                    $("#cacheForm #errorNote").html("cache value 为空");
+                }
+                $("#cacheForm #value").val(data);
+            },
+            function (xhr, status, err) {
+                $("#cacheForm #errorNote").html("status:" + status + "\terror:" + err);
+            });
+    }
+
+    function setCache() {
+        var key = $("#cacheForm #key").val().trim();
+        var value = $("#cacheForm #value").val().trim();
+        var cacheName = $(":radio[name=cacheName]:checked").val().trim();
+        if (cacheName !== "") {
+            $("#cacheForm #errorNote").html("不能设置，cacheName请选择无");
+            return;
+        }
+        if (key === "" || value === "") {
+            $("#cacheForm #errorNote").html("设置失败，键、值不能为空");
+            return;
+        }
+        requestData("/set/" + key + "/" + value,
+            function (data) {
+                $("#cacheForm #value").html(value);
+                $("#cacheForm #errorNote").html("设置成功，" + data);
+            },
+            function (xhr, status, err) {
+                $("#cacheForm #errorNote").html("status:" + status + "\terror:" + err);
+            });
+    }
+</script>
+</html>

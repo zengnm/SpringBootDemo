@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+
+</head>
+<body>
+<div th:fragment="editOrderModal" class="modal fade" id="editOrderModal" tabindex="-1" role="dialog"
+     aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog" data-backdrop="static">
+        <form  method="post" action="/edit" class="form-horizontal col-sm-11" role="form">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                        &times;
+                    </button>
+                    <h4 class="modal-title">编辑</h4>
+                </div>
+                <div class="modal-body">
+                    <!--modal-body begin-->
+                    <form class="form-horizontal col-sm-11" role="form">
+                        <input id="orderId" name="id" type="hidden"/>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="userPin" class="col-sm-3 control-label">userPin</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="userPin" name="userPin"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="orderPrice" class="col-sm-3 control-label">orderPrice</label>
+                                <div class="col-sm-8">
+                                    <input type="text" class="form-control" id="orderPrice" name="orderPrice"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top:30px;">
+                            <div class="form-group">
+                                <div class="col-sm-offset-1 col-sm-8">
+                                    <span id="errorNote" style="color:red;"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div><!--modal-body end-->
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary"
+                            style="border-color:#D73B48;background-color:#D73B48;color:#fff;">
+                        保存
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </form>
+    </div><!-- /.modal -->
+</div>
+</body>
+</html>

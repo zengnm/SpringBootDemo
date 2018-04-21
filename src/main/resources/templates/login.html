@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="common/header :: common-header" />
+<body>
+<div th:replace="common/nav :: common-nav"></div>
+<div class="container">
+    <form class="form-signin" action="login" method="post" th:object="${user}">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <input type="text" class="form-control" th:field="*{name}"/>
+        <input type="password" class="form-control" th:field="*{password}"/>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+        <div class="errors" th:text="${message}" />
+    </form>
+</div>
+<div th:replace="common/footer :: common-footer"/>
+</body>
+</html>
