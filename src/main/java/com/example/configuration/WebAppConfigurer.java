@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class WebMvcConfigurer implements WebMvcConfigurer {
+public class WebAppConfigurer implements WebMvcConfigurer {
     /**
      * 多个拦截器组成一个拦截器链
      * addPathPatterns 用于添加拦截规则，excludePathPatterns 用户排除拦截
