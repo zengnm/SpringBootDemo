@@ -22,7 +22,7 @@ import redis.embedded.RedisServer;
 
 @Configuration
 @EnableCaching
-public class RedisConfiguration extends CachingConfigurerSupport {
+public class RedisConfigurer extends CachingConfigurerSupport {
     /**
      * 使用embedded redis (https://github.com/kstyrc/embedded-redis)
      */
