@@ -38,32 +38,41 @@ public class SseEmitterManager {
     }
 
     private static MonitorSseEmitter newIfAbsent(String id, Long connectTimeout, Long maxLifeTimeout, boolean connect) {
-        return SSE_EMITTER_CACHE.computeIfAbsent(id, key -> {
-            MonitorSseEmitter sseEmitter = new MonitorSseEmitter(connectTimeout, maxLifeTimeout);
-            if (connect) {
-                sseEmitter.setConnectedTime(System.currentTimeMillis());
-            }
-            // 当且仅当缓存中的sseEmitter为当前待删除sseEmitter才执行删除
-            Runnable delete = () -> SSE_EMITTER_CACHE.compute(id, (key1, old) -> old == sseEmitter ? null : old);
-            // 已完成、错误、超时场景时从缓存中删除
-            sseEmitter.onCompletion(delete);
-            sseEmitter.onTimeout(delete);
-            sseEmitter.onError((t) -> delete.run());
-            return sseEmitter;
-        });
+        return SSE_EMITTER_CACHE.computeIfAbsent(id, key -> newMonitorSseEmitter(key, connectTimeout, maxLifeTimeout,
+                connect));
+    }
+
+    private static MonitorSseEmitter newMonitorSseEmitter(String id, Long connectTimeout, Long maxLifeTimeout,
+                                                          boolean connect) {
+        MonitorSseEmitter sseEmitter = new MonitorSseEmitter(connectTimeout, maxLifeTimeout);
+        if (connect) {
+            sseEmitter.setConnectedTime(System.currentTimeMillis());
+        }
+        // 当且仅当缓存中的sseEmitter为当前待删除sseEmitter才执行删除
+        Runnable delete = () -> SSE_EMITTER_CACHE.compute(id, (key, old) -> old == sseEmitter ? null : old);
+        // 已完成、错误、超时场景时从缓存中删除
+        sseEmitter.onCompletion(delete);
+        sseEmitter.onTimeout(delete);
+        sseEmitter.onError((t) -> delete.run());
+        return sseEmitter;
     }
 
     /**
      * 注意：除了作为mvc最终返回外，其他地方不要直接获取SseEmitter
      */
     public static MonitorSseEmitter newAndConnect(String id, Long maxLifeTimeout) {
-        // 关闭旧连接
-        MonitorSseEmitter remotedEmitter = SSE_EMITTER_CACHE.get(id);
-        if (remotedEmitter != null && remotedEmitter.getConnectedTime() != null) {
-            SSE_EMITTER_CACHE.remove(id);
-            remotedEmitter.complete();
-        }
-        return newIfAbsent(id, null, maxLifeTimeout, true);
+        return SSE_EMITTER_CACHE.compute(id, (key, old) -> {
+            // 提前发送的场景
+            if (old != null && old.getConnectedTime() == null) {
+                return old;
+            }
+            // 同一id的新连接建立，旧连接关闭
+            if (old != null && old.getConnectedTime() != null) {
+                old.complete();
+            }
+
+            return newMonitorSseEmitter(key, null, maxLifeTimeout, true);
+        });
     }
 
     public static boolean exist(String id) {
