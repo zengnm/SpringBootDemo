@@ -2,3 +2,7 @@ spring:
   threads:
     virtual:
       enabled: true
+  r2dbc:
+    url: r2dbc:mysql://127.0.0.1:3306/test?serverTimezone=GMT%2B8&useSSL=false&useUnicode=true&characterEncoding=utf8
+    username: root
+    password: 123456
