@@ -1,6 +1,8 @@
 package com.example.controller;
 
 import com.example.repository.Test;
+import com.example.repository.TestJoin;
+import com.example.repository.TestJoinRepository;
 import com.example.repository.TestRepository;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Example;
@@ -23,6 +25,8 @@ import java.util.Random;
 public class TestController {
     @Resource
     private TestRepository testRepository;
+    @Resource
+    private TestJoinRepository testJoinRepository;
 
     @GetMapping("/test")
     public Mono<String> test() {
@@ -35,5 +39,10 @@ public class TestController {
         ExampleMatcher matching = ExampleMatcher.matching()
                 .withMatcher("name", ExampleMatcher.GenericPropertyMatchers.startsWith());
         return testRepository.findAll(Example.of(test, matching));
+    }
+
+    @GetMapping("/join")
+    public Flux<TestJoin> join(String name) {
+        return testJoinRepository.query(name);
     }
 }
