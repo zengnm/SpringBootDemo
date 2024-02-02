@@ -3,9 +3,14 @@ package com.example.controller;
 import com.example.repository.Test;
 import com.example.repository.TestRepository;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -25,8 +30,10 @@ public class TestController {
         return Mono.delay(Duration.ofMillis(delay)).map(e -> "success");
     }
 
-    @GetMapping("/getById")
-    public Mono<Test> getById(@RequestParam Long id) {
-        return testRepository.findById(id);
+    @PostMapping(value = "/getAll", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Flux<Test> all(@RequestBody Test test) {
+        ExampleMatcher matching = ExampleMatcher.matching()
+                .withMatcher("name", ExampleMatcher.GenericPropertyMatchers.startsWith());
+        return testRepository.findAll(Example.of(test, matching));
     }
 }
