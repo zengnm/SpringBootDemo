@@ -1,5 +1,6 @@
 package com.example.repository;
 
+import org.springframework.data.domain.Example;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.Repository;
 import reactor.core.publisher.Flux;
@@ -15,4 +16,10 @@ public interface TestJoinRepository extends Repository<TestJoin, Long> {
             WHERE d.id = t.id and t.name like concat(:name, '%')
             """)
     Flux<TestJoin> query(String name);
+
+    @Query("""
+            SELECT t.id as id, t.name as name, d.name as data_name
+            FROM test_data d join test t ON d.id = t.id
+            """)
+    Flux<TestJoin> query(Example<TestJoin> example);
 }

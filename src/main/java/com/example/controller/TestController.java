@@ -58,4 +58,11 @@ public class TestController {
     public Flux<TestJoin> join(String name) {
         return testJoinRepository.query(name);
     }
+
+    @PostMapping("/dynamicSql")
+    public Flux<TestJoin> dynamicSql(@RequestBody TestJoin testJoin) {
+        ExampleMatcher matching = ExampleMatcher.matching()
+                .withMatcher("name", ExampleMatcher.GenericPropertyMatchers.startsWith());
+        return testJoinRepository.query(Example.of(testJoin, matching));
+    }
 }
