@@ -19,6 +19,10 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core:6.2.2.RELEASE'
+    implementation 'org.apache.commons:commons-pool2:2.12.0'
 }
 
 tasks.named('test') {
