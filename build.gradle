@@ -18,7 +18,12 @@ configurations {
 }
 
 repositories {
-    maven { url = uri("https://maven.aliyun.com/repository/central") }
+    maven {
+        url = uri("https://nexus.gtjaqh.net/repository/maven-public")
+        metadataSources {
+            artifact()
+        }
+    }
     mavenCentral()
 }
 
@@ -27,12 +32,13 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok'
+    implementation 'com.google.guava:guava:33.0.0-jre'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'com.zaxxer:HikariCP'
     implementation 'mysql:mysql-connector-java:8.0.30'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'io.lettuce:lettuce-core:6.2.2.RELEASE'
     implementation 'org.apache.commons:commons-pool2:2.12.0'
+    implementation 'com.tongtech.client:tongtech-client:2.0.1.5'
 }
 
 tasks.named('test') {
