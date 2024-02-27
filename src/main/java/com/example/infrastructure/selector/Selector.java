@@ -7,10 +7,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * 用于指定从哪个参数及字段获取策略id
+ *
  * @author zengnianmei
  */
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface Strategy {
+public @interface Selector {
+    /**
+     * 通过SpEL指定策略id
+     */
+    String determine();
 }

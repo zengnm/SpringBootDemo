@@ -1,4 +1,4 @@
-package com.example.service.strategy;
+package com.example.strategy;
 
 import org.springframework.stereotype.Service;
 
@@ -13,7 +13,7 @@ public class Hi implements Say {
     }
 
     @Override
-    public void say() {
-        System.out.println(id());
+    public String say(Param param) {
+        return "hi " + param.getName();
     }
 }

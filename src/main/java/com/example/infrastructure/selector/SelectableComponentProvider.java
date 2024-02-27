@@ -9,18 +9,20 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import java.io.IOException;
 
 /**
+ * 策略组件扫描器
+ *
  * @author zengnianmei
  */
-public class StrategyComponentProvider extends ClassPathScanningCandidateComponentProvider {
+public class SelectableComponentProvider extends ClassPathScanningCandidateComponentProvider {
 
-    public StrategyComponentProvider() {
+    public SelectableComponentProvider() {
         super(false);
-        addIncludeFilter(new InterfaceTypeFilter(StrategyId.class));
+        addIncludeFilter(new InterfaceTypeFilter(SelectorId.class));
     }
 
     @Override
     protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
-        boolean isNonStrategyIdInterface = !StrategyId.class.getName().equals(beanDefinition.getBeanClassName());
+        boolean isNonStrategyIdInterface = !SelectorId.class.getName().equals(beanDefinition.getBeanClassName());
         boolean isTopLevelType = !beanDefinition.getMetadata().hasEnclosingClass();
 
         return isNonStrategyIdInterface && isTopLevelType;
@@ -35,7 +37,6 @@ public class StrategyComponentProvider extends ClassPathScanningCandidateCompone
         @Override
         public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory)
                 throws IOException {
-
             return metadataReader.getClassMetadata().isInterface() && super.match(metadataReader, metadataReaderFactory);
         }
     }
