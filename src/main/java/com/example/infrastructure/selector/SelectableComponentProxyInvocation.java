@@ -9,6 +9,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import javax.annotation.CheckForNull;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
@@ -49,6 +50,10 @@ public class SelectableComponentProxyInvocation extends AbstractInvocationHandle
         SpelExpressionParser parser = new SpelExpressionParser();
         String key = parser.parseExpression(determine).getValue(context, String.class);
         Object object = strategyMap.get(key);
-        return method.invoke(object, args);
+        try {
+            return method.invoke(object, args);
+        } catch (InvocationTargetException e) {
+            throw e.getCause();
+        }
     }
 }
