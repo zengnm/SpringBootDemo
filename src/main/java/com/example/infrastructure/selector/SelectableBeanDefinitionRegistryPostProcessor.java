@@ -13,6 +13,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 public class SelectableBeanDefinitionRegistryPostProcessor implements BeanDefinitionRegistryPostProcessor {
@@ -30,7 +31,8 @@ public class SelectableBeanDefinitionRegistryPostProcessor implements BeanDefini
 
         for (BeanDefinition beanDefinition : candidates) {
             Class<?> clazz = getClassByName(beanDefinition.getBeanClassName());
-            Map<String, ?> beansOfType = beanFactory.getBeansOfType(clazz);
+            Map<String, ?> beansOfType = beanFactory.getBeansOfType(clazz).values().stream()
+                    .collect(Collectors.toMap(e -> ((SelectorId) e).id(), e -> e));
 
             GenericBeanDefinition definition = new GenericBeanDefinition();
             definition.setBeanClass(clazz);
