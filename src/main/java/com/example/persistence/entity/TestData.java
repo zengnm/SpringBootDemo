@@ -8,30 +8,6 @@ import java.time.LocalDateTime;
 /**
  * 测试数据
  */
-@NamedNativeQuery(
-        name = "queryDataProperty",
-        query = """
-                select d.id, d.name, d.status, p.content,  d.create_time, d.update_time
-                from test_data d left join test_property p on d.name = p.name
-                where d.id > :id
-                """,
-//        resultClass = TestDataProperty.class,
-        resultSetMapping = "testDataPropertyMapping"
-)
-
-@SqlResultSetMapping(
-        name = "testDataPropertyMapping",
-        entities = @EntityResult(entityClass = TestDataProperty.class,
-                fields = {
-                        @FieldResult(name = "id", column = "id"),
-                        @FieldResult(name = "name", column = "name"),
-                        @FieldResult(name = "status", column = "status"),
-                        @FieldResult(name = "content", column = "content"),
-                        @FieldResult(name = "createTime", column = "create_time"),
-                        @FieldResult(name = "updateTime", column = "update_time"),
-                }
-        )
-)
 
 @Data
 @Entity

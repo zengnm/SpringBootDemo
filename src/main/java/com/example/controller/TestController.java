@@ -1,11 +1,10 @@
 package com.example.controller;
 
+import com.example.persistence.TestDataPropertyRepository;
 import com.example.persistence.TestDataRepository;
 import com.example.persistence.entity.TestData;
 import com.example.persistence.entity.TestDataProperty;
 import jakarta.annotation.Resource;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,18 +34,10 @@ public class TestController {
         return testData.get();
     }
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    @GetMapping("/namedQueryByEntityManager")
-    public List<TestDataProperty> namedQueryByEntityManager() {
-        return entityManager.createNamedQuery("queryDataProperty", TestDataProperty.class)
-                .setParameter("id", 1L)
-                .getResultList();
-    }
-
+    @Resource
+    private TestDataPropertyRepository testDataPropertyRepository;
     @GetMapping("/namedQuery")
     public List<TestDataProperty> namedQuery() {
-        return testDataRepository.queryDataProperty(1L);
+        return testDataPropertyRepository.queryDataProperty(1L);
     }
 }
