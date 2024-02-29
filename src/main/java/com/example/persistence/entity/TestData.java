@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @NamedNativeQuery(
         name = "queryDataProperty",
         query = """
-                select d.id, d.name, d.status, p.content,  d.create_time as createTime, d.update_time as updateTime
+                select d.id, d.name, d.status, p.content,  d.create_time, d.update_time
                 from test_data d left join test_property p on d.name = p.name
-                where d.id = :id
+                where d.id > :id
                 """,
 //        resultClass = TestDataProperty.class,
         resultSetMapping = "testDataPropertyMapping"
@@ -21,15 +21,14 @@ import java.time.LocalDateTime;
 
 @SqlResultSetMapping(
         name = "testDataPropertyMapping",
-        classes = @ConstructorResult(
-                targetClass = TestDataProperty.class,
-                columns = {
-                        @ColumnResult(name = "id", type = Long.class),
-                        @ColumnResult(name = "name", type = String.class),
-                        @ColumnResult(name = "status", type = Integer.class),
-                        @ColumnResult(name = "content", type = String.class),
-                        @ColumnResult(name = "createTime", type = LocalDateTime.class),
-                        @ColumnResult(name = "updateTime", type = LocalDateTime.class),
+        entities = @EntityResult(entityClass = TestDataProperty.class,
+                fields = {
+                        @FieldResult(name = "id", column = "id"),
+                        @FieldResult(name = "name", column = "name"),
+                        @FieldResult(name = "status", column = "status"),
+                        @FieldResult(name = "content", column = "content"),
+                        @FieldResult(name = "createTime", column = "create_time"),
+                        @FieldResult(name = "updateTime", column = "update_time"),
                 }
         )
 )

@@ -47,7 +47,6 @@ public class TestController {
 
     @GetMapping("/namedQuery")
     public List<TestDataProperty> namedQuery() {
-        List<TestDataProperty> queryDataProperty = testDataRepository.queryDataProperty(1L);
-        return queryDataProperty;
+        return testDataRepository.queryDataProperty(1L);
     }
 }
