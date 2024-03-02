@@ -1,8 +1,10 @@
 package com.example.persistence.entity;
 
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,4 +47,10 @@ public class TestDataProperty {
      * 更新时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 指定字段不映射，即使数据库中有对应字段
+     */
+    @Transient
+    private Integer ignore;
 }
