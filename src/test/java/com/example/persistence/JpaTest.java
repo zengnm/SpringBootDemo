@@ -1,5 +1,6 @@
 package com.example.persistence;
 
+import com.example.persistence.entity.TestData;
 import com.example.persistence.entity.TestDataProperty;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Optional;
 
 @SpringBootTest
 public class JpaTest {
@@ -31,5 +33,13 @@ public class JpaTest {
         if (!page.getContent().isEmpty()) {
             Assertions.assertTrue(page.getContent().getFirst().getId() >= page.getContent().getLast().getId());
         }
+    }
+
+    @Resource
+    private TestDataRepository testDataRepository;
+    @Test
+    public void test() {
+        Optional<TestData> testData = testDataRepository.queryById(1L);
+        testData.ifPresent(data -> Assertions.assertEquals(1L, (long) data.getId()));
     }
 }

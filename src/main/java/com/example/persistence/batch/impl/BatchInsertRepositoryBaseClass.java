@@ -1,12 +1,12 @@
-package com.example.persistence.batch;
+package com.example.persistence.batch.impl;
 
+import com.example.persistence.batch.BatchInsertRepository;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.Table;
-import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
-import org.springframework.data.repository.NoRepositoryBean;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -16,17 +16,16 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@NoRepositoryBean
-public abstract class BaseRepository<T, ID> extends SimpleJpaRepository<T, ID> {
-    private final Class<T> domainClass;
-    private final EntityManager entityManager;
+public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T, ID> implements BatchInsertRepository<T> {
+    private EntityManager entityManager;
+    private final Class<?> domainClass;
     private final String table;
     private final String[] columns;
     private final Function<T, Object>[] propertyMappers;
 
-    public BaseRepository(Class<T> domainClass, EntityManager entityManager) {
-        super(domainClass, entityManager);
-        this.domainClass = domainClass;
+    public BatchInsertRepositoryBaseClass(JpaEntityInformation<T, ID> entityInformation, EntityManager entityManager) {
+        super(entityInformation, entityManager);
+        this.domainClass = entityInformation.getJavaType();
         this.entityManager = entityManager;
         InsertColumnProperties ips = new InsertColumnProperties();
         initInsertColumnProperty(ips);
@@ -38,7 +37,8 @@ public abstract class BaseRepository<T, ID> extends SimpleJpaRepository<T, ID> {
     protected void initInsertColumnProperty(InsertColumnProperties ips) {
         Table table = this.domainClass.getAnnotation(Table.class);
         if (table == null) {
-            throw new IllegalArgumentException(String.format("class %s @Table annotation require", this.domainClass.getCanonicalName()));
+            // 未指定表，例如多表关联的情况，不支持批量插入
+            return ;
         }
         ips.table(table.name());
 
@@ -82,6 +82,10 @@ public abstract class BaseRepository<T, ID> extends SimpleJpaRepository<T, ID> {
     private final static String INSERT_TABLE_COLUMNS_VALUES = "insert into %s(%s)\nvalues%s";
 
     public int batchInsert(List<T> entities) {
+        if (table == null) {
+            throw new UnsupportedOperationException("class %s not @Table annotation");
+        }
+
         StringJoiner sj = new StringJoiner(",");
         for (String column : columns) {
             sj.add(column);
@@ -100,12 +104,5 @@ public abstract class BaseRepository<T, ID> extends SimpleJpaRepository<T, ID> {
             }
         }
         return query.executeUpdate();
-    }
-
-    @Transactional
-    @Override
-    public <S extends T> List<S> saveAll(Iterable<S> entities) {
-//        throw new RuntimeException("请使用batchInsert"); todo 抛出异常？
-        return super.saveAll(entities);
     }
 }

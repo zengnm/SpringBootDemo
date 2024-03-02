@@ -1,13 +1,17 @@
 package com.example.persistence;
 
-import com.example.persistence.batch.BaseRepository;
+import com.example.persistence.batch.BatchInsertRepository;
 import com.example.persistence.entity.TestData;
-import jakarta.persistence.EntityManager;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
-@Repository
-public class TestDataRepository extends BaseRepository<TestData, Long> {
-    public TestDataRepository(EntityManager entityManager) {
-        super(TestData.class, entityManager);
-    }
+import java.util.Optional;
+
+public interface TestDataRepository extends JpaRepository<TestData, Long>, BatchInsertRepository<TestData> {
+    @Query(value = """
+            select d.*
+            from test_data d
+            where d.id = :id
+            """, nativeQuery = true)
+    Optional<TestData> queryById(Long id);
 }
