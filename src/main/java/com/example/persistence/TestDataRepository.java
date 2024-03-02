@@ -1,10 +1,20 @@
 package com.example.persistence;
 
+import com.example.persistence.batch.BaseRepository;
 import com.example.persistence.entity.TestData;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import jakarta.persistence.EntityManager;
+import org.springframework.stereotype.Repository;
 
-public interface TestDataRepository extends JpaRepository<TestData, Long>, JpaSpecificationExecutor<TestData> {
+@Repository
+public class TestDataRepository extends BaseRepository<TestData, Long> {
+    public TestDataRepository(EntityManager entityManager) {
+        super(TestData.class, entityManager);
+    }
 
-
+    @Override
+    protected void initInsertColumnProperty(BaseRepository<TestData, Long>.InsertColumnProperties ips) {
+        ips.table("test_data")
+                .addInsertColumn("name", TestData::getName)
+                .addInsertColumn("status", TestData::getStatus);
+    }
 }
