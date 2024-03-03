@@ -11,7 +11,39 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 /**
  * 测试数据
  */
-
+// 下面两个注解只能标注在entity上, 成对出现
+@NamedNativeQuery(name = "queryPart",
+        query = """
+                select d.id, d.name, d.status, d.create_time
+                from test_data d
+                where d.id = :id
+                """, resultSetMapping = "queryPartByIdMapping")
+@SqlResultSetMapping(name = "queryPartByIdMapping"
+        , entities = {
+            @EntityResult(
+                    entityClass = TestData.class,
+                    fields = {
+                            @FieldResult(name = "id", column = "id"),
+                            @FieldResult(name = "name", column = "name"),
+                            @FieldResult(name = "status", column = "status"),
+                            // name要和字段@Column.name,sql的保持一致
+                            @FieldResult(name = "createTime", column = "create_time"),
+                    }
+            )
+        }
+//        , classes = {
+//                @ConstructorResult(
+//                        targetClass = TestData.class,
+//                        columns = {
+//                                @ColumnResult(name = "id", type = Long.class),
+//                                @ColumnResult(name = "name", type = String.class),
+//                                @ColumnResult(name = "status", type = Integer.class),
+//                                // name要和字段名、sql的保持一致，@Column.name不生效
+//                                @ColumnResult(name = "createTime", type = LocalDateTime.class)
+//                        }
+//                )
+//        }
+)
 @Data
 @Entity
 @Table(name = "test_data")

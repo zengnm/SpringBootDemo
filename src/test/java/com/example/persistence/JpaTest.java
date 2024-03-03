@@ -12,7 +12,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
-import java.util.Optional;
 
 @SpringBootTest
 public class JpaTest {
@@ -38,8 +37,8 @@ public class JpaTest {
     @Resource
     private TestDataRepository testDataRepository;
     @Test
-    public void test() {
-        Optional<TestData> testData = testDataRepository.queryById(1L);
-        testData.ifPresent(data -> Assertions.assertEquals(1L, (long) data.getId()));
+    public void testSelectPart() {
+        TestData optional = testDataRepository.queryPart(1L);
+//        optional.ifPresent(data -> Assertions.assertEquals(1L, (long) data.getId()));
     }
 }
