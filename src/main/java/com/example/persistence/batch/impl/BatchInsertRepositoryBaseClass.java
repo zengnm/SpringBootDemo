@@ -1,16 +1,23 @@
 package com.example.persistence.batch.impl;
 
 import com.example.persistence.batch.BatchInsertRepository;
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import org.hibernate.engine.spi.SessionImplementor;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 
 import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -22,6 +29,7 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     private final String table;
     private final String[] columns;
     private final Function<T, Object>[] propertyMappers;
+    private final Field idField;
 
     public BatchInsertRepositoryBaseClass(JpaEntityInformation<T, ID> entityInformation, EntityManager entityManager) {
         super(entityInformation, entityManager);
@@ -32,13 +40,14 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         this.table = ips.table;
         this.columns = ips.columns.toArray(new String[0]);
         this.propertyMappers = ips.propertyMappers.toArray(new Function[0]);
+        this.idField = ips.idField;
     }
 
     protected void initInsertColumnProperty(InsertColumnProperties ips) {
         Table table = this.domainClass.getAnnotation(Table.class);
         if (table == null) {
             // 未指定表，例如多表关联的情况，不支持批量插入
-            return ;
+            return;
         }
         ips.table(table.name());
 
@@ -46,8 +55,8 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         for (Field field : this.domainClass.getDeclaredFields()) {
             Column column = field.getAnnotation(Column.class);
             if (column != null && column.insertable()) {
+                field.setAccessible(true);
                 ips.addInsertColumn(column.name(), o -> { //todo 考虑加 `
-                    field.setAccessible(true);
                     try {
                         return field.get(o);
                     } catch (IllegalAccessException e) {
@@ -55,10 +64,19 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
                     }
                 });
                 columnCount++;
+            } else {
+                Id id = field.getAnnotation(Id.class);
+                if (id != null) {
+                    field.setAccessible(true);
+                    ips.idField(field);
+                }
             }
         }
         if (columnCount == 0) {
             throw new IllegalArgumentException(String.format("class %s insertable column require", this.domainClass.getCanonicalName()));
+        }
+        if (ips.idField == null) {
+            throw new IllegalArgumentException(String.format("class %s id column not found", this.domainClass.getCanonicalName()));
         }
     }
 
@@ -66,6 +84,7 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         private String table;
         private final List<String> columns = new ArrayList<>();
         private final List<Function<T, Object>> propertyMappers = new ArrayList<>();
+        private Field idField;
 
         public InsertColumnProperties table(String table) {
             this.table = table;
@@ -75,6 +94,11 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         public InsertColumnProperties addInsertColumn(String column, Function<T, Object> propertyMapper) {
             this.columns.add(column);
             this.propertyMappers.add(propertyMapper);
+            return this;
+        }
+
+        public InsertColumnProperties idField(Field idField) {
+            this.idField = idField;
             return this;
         }
     }
@@ -96,13 +120,42 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         String lines = IntStream.range(0, entities.size()).boxed().map(e -> line).collect(Collectors.joining(","));
         String sql = String.format(INSERT_TABLE_COLUMNS_VALUES, this.table, columns, lines);
 
-        int i = 1;
-        Query query = entityManager.createNativeQuery(sql);
-        for (T testData : entities) {
-            for (int j = 0; j < this.columns.length; j++) {
-                query.setParameter(i++, this.propertyMappers[j].apply(testData));
+        GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
+        SessionImplementor session = entityManager.unwrap(SessionImplementor.class);
+        try (Connection connection = session.getJdbcConnectionAccess().obtainConnection()) {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
+            int[] affects = jdbcTemplate.batchUpdate(con -> con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int ignore) throws SQLException {
+                    int i = 1;
+                    for (T entity : entities) {
+                        for (int j = 0; j < propertyMappers.length; j++) {
+                            ps.setObject(i++, propertyMappers[j].apply(entity));
+                        }
+                    }
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return 1;
+                }
+            }, generatedKeyHolder);
+            List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
+            for (int i = 0; i < keyList.size(); i++) {
+                Long id = Long.valueOf(keyList.get(i).get("GENERATED_KEY").toString());
+                try {
+                    idField.set(entities.get(i), id);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            int total = 0;
+            for (int affect : affects) {
+                total += affect;
+            }
+            return total;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        return query.executeUpdate();
     }
 }
