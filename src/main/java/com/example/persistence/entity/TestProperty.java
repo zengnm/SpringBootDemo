@@ -17,7 +17,7 @@ public class TestProperty {
      * 主键
      */
     @Id
-    @Column(name = "id", nullable = false)
+    @Column(name = "id", insertable = false, nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

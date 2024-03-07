@@ -1,17 +1,15 @@
 package com.example.persistence.batch.impl;
 
 import com.example.persistence.batch.BatchInsertRepository;
+import com.example.persistence.batch.JdbcTemplateHolder;
 import jakarta.persistence.*;
-import org.hibernate.engine.spi.SessionImplementor;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -54,7 +52,10 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         int columnCount = 0;
         for (Field field : this.domainClass.getDeclaredFields()) {
             Column column = field.getAnnotation(Column.class);
-            if (column != null && column.insertable()) {
+            if (field.getAnnotation(Id.class) != null) {
+                field.setAccessible(true);
+                ips.idField(field);
+            } else if (column != null && column.insertable()) {
                 field.setAccessible(true);
                 ips.addInsertColumn(column.name(), o -> { //todo 考虑加 `
                     try {
@@ -64,12 +65,6 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
                     }
                 });
                 columnCount++;
-            } else {
-                Id id = field.getAnnotation(Id.class);
-                if (id != null) {
-                    field.setAccessible(true);
-                    ips.idField(field);
-                }
             }
         }
         if (columnCount == 0) {
@@ -104,8 +99,10 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     }
 
     private final static String INSERT_TABLE_COLUMNS_VALUES = "insert into %s(%s)\nvalues%s";
+    private final static String INSERT_IGNORE_TABLE_COLUMNS_VALUES = "insert ignore into %s(%s)\nvalues%s";
+    private final static String INSERT_TABLE_COLUMNS_VALUES_ON_DUPLICATE_UPDATE = "insert ignore into %s(%s)\nvalues%s on duplicate update %s";
 
-    public int batchInsert(List<T> entities) {
+    private String getSql(List<T> entities, int type, String onDuplicateUpdate) {
         if (table == null) {
             throw new UnsupportedOperationException("class %s not @Table annotation");
         }
@@ -118,44 +115,93 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
 
         String line = IntStream.range(0, this.columns.length).boxed().map(e -> "?").collect(Collectors.joining(",", "(", ")"));
         String lines = IntStream.range(0, entities.size()).boxed().map(e -> line).collect(Collectors.joining(","));
-        String sql = String.format(INSERT_TABLE_COLUMNS_VALUES, this.table, columns, lines);
+        return switch (type) {
+            case 1 ->  String.format(INSERT_TABLE_COLUMNS_VALUES, this.table, columns, lines);
+            case 2 ->  String.format(INSERT_IGNORE_TABLE_COLUMNS_VALUES, this.table, columns, lines);
+            default ->  String.format(INSERT_TABLE_COLUMNS_VALUES_ON_DUPLICATE_UPDATE, this.table, columns, lines, onDuplicateUpdate);
+        };
+    }
+
+    @Override
+    @Transactional
+    public int batchInsert(List<T> entities) {
+        String sql = getSql(entities, 1, null);
+
+        int i = 1;
+        Query query = entityManager.createNativeQuery(sql);
+        for (T testData : entities) {
+            for (int j = 0; j < this.columns.length; j++) {
+                query.setParameter(i++, this.propertyMappers[j].apply(testData));
+            }
+        }
+        return query.executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public int batchInsertIgnore(List<T> entities) {
+        String sql = getSql(entities, 2, null);
+
+        int i = 1;
+        Query query = entityManager.createNativeQuery(sql);
+        for (T testData : entities) {
+            for (int j = 0; j < this.columns.length; j++) {
+                query.setParameter(i++, this.propertyMappers[j].apply(testData));
+            }
+        }
+        return query.executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public int batchInsertOnDuplicateUpdate(List<T> entities, String onDuplicateUpdate) {
+        String sql = getSql(entities, 3, null);
+
+        int i = 1;
+        Query query = entityManager.createNativeQuery(sql);
+        for (T testData : entities) {
+            for (int j = 0; j < this.columns.length; j++) {
+                query.setParameter(i++, this.propertyMappers[j].apply(testData));
+            }
+        }
+        return query.executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public int batchInsertGeneratedKey(List<T> entities) {
+        String sql = getSql(entities, 1, null);
 
         GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
-        SessionImplementor session = entityManager.unwrap(SessionImplementor.class);
-        try (Connection connection = session.getJdbcConnectionAccess().obtainConnection()) {
-            JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
-            int[] affects = jdbcTemplate.batchUpdate(con -> con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), new BatchPreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps, int ignore) throws SQLException {
-                    int i = 1;
-                    for (T entity : entities) {
-                        for (int j = 0; j < propertyMappers.length; j++) {
-                            ps.setObject(i++, propertyMappers[j].apply(entity));
-                        }
+        int[] affects = JdbcTemplateHolder.jdbcTemplate.batchUpdate(con -> con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int ignore) throws SQLException {
+                int i = 1;
+                for (T entity : entities) {
+                    for (int j = 0; j < propertyMappers.length; j++) {
+                        ps.setObject(i++, propertyMappers[j].apply(entity));
                     }
                 }
+            }
 
-                @Override
-                public int getBatchSize() {
-                    return 1;
-                }
-            }, generatedKeyHolder);
-            List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
-            for (int i = 0; i < keyList.size(); i++) {
-                Long id = Long.valueOf(keyList.get(i).get("GENERATED_KEY").toString());
-                try {
-                    idField.set(entities.get(i), id);
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+            @Override
+            public int getBatchSize() {
+                return 1;
             }
-            int total = 0;
-            for (int affect : affects) {
-                total += affect;
+        }, generatedKeyHolder);
+        List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
+        for (int i = 0; i < keyList.size(); i++) {
+            Long id = Long.valueOf(keyList.get(i).get("GENERATED_KEY").toString());
+            try {
+                idField.set(entities.get(i), id);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
-            return total;
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
         }
+        int total = 0;
+        for (int affect : affects) {
+            total += affect;
+        }
+        return total;
     }
 }
