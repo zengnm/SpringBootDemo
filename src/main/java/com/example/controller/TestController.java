@@ -28,7 +28,7 @@ public class TestController {
     @GetMapping("/testData")
     public TestData testData() {
         Optional<TestData> testData = testDataRepository.findById(1L);
-        return testData.get();
+        return testData.orElse(null);
     }
 
     @GetMapping("/batchInsert/{type}")

@@ -100,7 +100,7 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
 
     private final static String INSERT_TABLE_COLUMNS_VALUES = "insert into %s(%s)\nvalues%s";
     private final static String INSERT_IGNORE_TABLE_COLUMNS_VALUES = "insert ignore into %s(%s)\nvalues%s";
-    private final static String INSERT_TABLE_COLUMNS_VALUES_ON_DUPLICATE_UPDATE = "insert ignore into %s(%s)\nvalues%s on duplicate update %s";
+    private final static String INSERT_TABLE_COLUMNS_VALUES_ON_DUPLICATE_UPDATE = "insert ignore into %s(%s)\nvalues%s on duplicate key update %s";
 
     private String getSql(List<T> entities, int type, String onDuplicateUpdate) {
         if (table == null) {
