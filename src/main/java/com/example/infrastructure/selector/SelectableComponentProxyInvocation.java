@@ -36,21 +36,20 @@ public class SelectableComponentProxyInvocation extends AbstractInvocationHandle
     @CheckForNull
     @Override
     protected Object handleInvocation(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
-        ParameterNameDiscoverer discoverer = new StandardReflectionParameterNameDiscoverer();
-        String[] parameterNames = discoverer.getParameterNames(method);
-
-        Selector annotation = method.getAnnotation(Selector.class);
-        // 主要是处理排除当前代理类的情况
-        if (annotation == null && "id".equals(method.getName()) && method.getParameterCount() == 0) {
+        // 调用代理类的id()方法，直接返回null
+        if ("id".equals(method.getName()) && method.getParameterCount() == 0) {
             return null;
         }
-        String determine = annotation.determine();
 
+        ParameterNameDiscoverer discoverer = new StandardReflectionParameterNameDiscoverer();
+        String[] parameterNames = discoverer.getParameterNames(method);
         EvaluationContext context = new StandardEvaluationContext();
         for (int i = 0; i < Objects.requireNonNull(parameterNames).length; i++) {
             context.setVariable(parameterNames[i], args[i]);
         }
 
+        Selector annotation = method.getAnnotation(Selector.class);
+        String determine = annotation.determine();
         SpelExpressionParser parser = new SpelExpressionParser();
         String key = parser.parseExpression(determine).getValue(context, String.class);
         Object object = getStrategyMap().get(key);
@@ -67,7 +66,7 @@ public class SelectableComponentProxyInvocation extends AbstractInvocationHandle
                 if (this.strategyMap == null) {
                     strategyMap = objectProvider.stream()
                             .map(e -> (SelectorId) e)
-                            .filter(e -> e.id() != null) // 主要是排除当前代理类
+                            .filter(e -> e.id() != null) // 排除当前代理类
                             .collect(Collectors.toMap(SelectorId::id, Function.identity()));
                 }
             }
