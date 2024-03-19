@@ -2,6 +2,7 @@ package com.example.infrastructure.selector;
 
 import jakarta.annotation.Nonnull;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -12,10 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class SelectableBeanDefinitionRegistryPostProcessor implements BeanDefinitionRegistryPostProcessor {
     private BeanDefinitionRegistry registry;
 
@@ -31,14 +30,13 @@ public class SelectableBeanDefinitionRegistryPostProcessor implements BeanDefini
 
         for (BeanDefinition beanDefinition : candidates) {
             Class<?> clazz = getClassByName(beanDefinition.getBeanClassName());
-            Map<String, ?> beansOfType = beanFactory.getBeansOfType(clazz).values().stream()
-                    .collect(Collectors.toMap(e -> ((SelectorId) e).id(), e -> e));
+            ObjectProvider<?> beanProvider = beanFactory.getBeanProvider(clazz);
 
             GenericBeanDefinition definition = new GenericBeanDefinition();
             definition.setBeanClass(clazz);
             definition.setPrimary(true);
             definition.setAutowireCandidate(true);
-            definition.setInstanceSupplier(SelectableComponentProxyInvocation.createProxy(beansOfType,
+            definition.setInstanceSupplier(SelectableComponentProxyInvocation.createProxy(beanProvider,
                     clazz.getClassLoader(), new Class[]{clazz}));
             String beanName = StringUtils.uncapitalize(clazz.getSimpleName());
             registry.registerBeanDefinition(beanName, definition);

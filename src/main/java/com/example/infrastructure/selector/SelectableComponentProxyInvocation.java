@@ -2,6 +2,7 @@ package com.example.infrastructure.selector;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.StandardReflectionParameterNameDiscoverer;
 import org.springframework.expression.EvaluationContext;
@@ -14,23 +15,22 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class SelectableComponentProxyInvocation extends AbstractInvocationHandler {
-    private final Map<String, ?> strategyMap;
+    private volatile Map<String, ?> strategyMap;
+    private final ObjectProvider<?> objectProvider;
 
-    private SelectableComponentProxyInvocation(Map<String, ?> strategyMap) {
-        this.strategyMap = strategyMap;
+    private SelectableComponentProxyInvocation(ObjectProvider<?> objectProvider) {
+        this.objectProvider = objectProvider;
     }
 
-    public static Supplier<Object> createProxy(Map<String, ?> strategyMap, ClassLoader classLoader,
+    public static Supplier<Object> createProxy(ObjectProvider<?> objectProvider, ClassLoader classLoader,
                                                Class<?>[] classes) {
-        SelectableComponentProxyInvocation invocation = new SelectableComponentProxyInvocation(strategyMap);
-        return () -> {
-            Object o = Proxy.newProxyInstance(classLoader, classes, invocation);
-            System.out.println(o);
-            return o;
-        };
+        SelectableComponentProxyInvocation invocation = new SelectableComponentProxyInvocation(objectProvider);
+        return () -> Proxy.newProxyInstance(classLoader, classes, invocation);
     }
 
     @CheckForNull
@@ -40,6 +40,10 @@ public class SelectableComponentProxyInvocation extends AbstractInvocationHandle
         String[] parameterNames = discoverer.getParameterNames(method);
 
         Selector annotation = method.getAnnotation(Selector.class);
+        // 主要是处理排除当前代理类的情况
+        if (annotation == null && "id".equals(method.getName()) && method.getParameterCount() == 0) {
+            return null;
+        }
         String determine = annotation.determine();
 
         EvaluationContext context = new StandardEvaluationContext();
@@ -49,11 +53,25 @@ public class SelectableComponentProxyInvocation extends AbstractInvocationHandle
 
         SpelExpressionParser parser = new SpelExpressionParser();
         String key = parser.parseExpression(determine).getValue(context, String.class);
-        Object object = strategyMap.get(key);
+        Object object = getStrategyMap().get(key);
         try {
             return method.invoke(object, args);
         } catch (InvocationTargetException e) {
             throw e.getCause();
         }
+    }
+
+    private Map<String, ?> getStrategyMap() {
+        if (this.strategyMap == null) {
+            synchronized (this) {
+                if (this.strategyMap == null) {
+                    strategyMap = objectProvider.stream()
+                            .map(e -> (SelectorId) e)
+                            .filter(e -> e.id() != null) // 主要是排除当前代理类
+                            .collect(Collectors.toMap(SelectorId::id, Function.identity()));
+                }
+            }
+        }
+        return strategyMap;
     }
 }
