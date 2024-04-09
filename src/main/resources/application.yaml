@@ -1,0 +1,6 @@
+spring:
+  rabbitmq:
+    addresses: 127.0.0.1:5671,127.0.0.1:5672,127.0.0.1:5673
+    virtual-host: vip
+    username: vip
+    password: 1qaz@WSX
