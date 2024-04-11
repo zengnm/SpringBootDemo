@@ -1,0 +1,7 @@
+server:
+  port: 8080
+spring:
+  kafka:
+    bootstrap-servers: localhost:9093
+    consumer:
+      group-id: spring_boot_demo
