@@ -5,21 +5,19 @@ import com.example.persistence.batch.JdbcTemplateHolder;
 import jakarta.persistence.*;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Repository实现类，包含批量插入
@@ -121,9 +119,8 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
         }
         String columns = sj.toString();
 
-        String line = IntStream.range(0, this.columns.length).boxed().map(e -> "?").collect(Collectors.joining(",",
-                "(", ")"));
-        String lines = IntStream.range(0, entities.size()).boxed().map(e -> line).collect(Collectors.joining(","));
+        String line = Collections.nCopies(this.columns.length, "?").stream().collect(Collectors.joining(",", "(", ")"));
+        String lines = String.join(",", Collections.nCopies(entities.size(), line));
         if (ignore) {
             return String.format(INSERT_IGNORE_TABLE_COLUMNS_VALUES, this.table, columns, lines);
         } else {
@@ -134,6 +131,9 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     @Override
     @Transactional
     public int batchInsert(List<T> entities) {
+        if (entities.isEmpty()) {
+            return 0;
+        }
         String sql = getSql(entities, false);
         return executeBatchInsert(entities, sql);
     }
@@ -152,6 +152,9 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     @Override
     @Transactional
     public int batchInsertIgnore(List<T> entities) {
+        if (entities.isEmpty()) {
+            return 0;
+        }
         String sql = getSql(entities, true);
         return executeBatchInsert(entities, sql);
     }
@@ -159,6 +162,9 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     @Override
     @Transactional
     public int batchInsertOnDuplicateUpdate(List<T> entities, String onDuplicateUpdate) {
+        if (entities.isEmpty()) {
+            return 0;
+        }
         String sql = getSql(entities, false);
         sql += ON_DUPLICATE_UPDATE;
         return executeBatchInsert(entities, sql);
@@ -167,25 +173,20 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
     @Override
     @Transactional
     public int batchInsertGeneratedKey(List<T> entities) {
+        if (entities.isEmpty()) {
+            return 0;
+        }
         String sql = getSql(entities, false);
-
         GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
-        int[] affects = JdbcTemplateHolder.jdbcTemplate.batchUpdate(con -> con.prepareStatement(sql,
-                Statement.RETURN_GENERATED_KEYS), new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps, int ignore) throws SQLException {
-                int i = 1;
-                for (T entity : entities) {
-                    for (int j = 0; j < propertyMappers.length; j++) {
-                        ps.setObject(i++, propertyMappers[j].apply(entity));
-                    }
+        int total = JdbcTemplateHolder.jdbcTemplate.update(con -> {
+            PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            int i = 1;
+            for (T entity : entities) {
+                for (Function<T, Object> propertyMapper : propertyMappers) {
+                    ps.setObject(i++, propertyMapper.apply(entity));
                 }
             }
-
-            @Override
-            public int getBatchSize() {
-                return 1;
-            }
+            return ps;
         }, generatedKeyHolder);
         List<Map<String, Object>> keyList = generatedKeyHolder.getKeyList();
         for (int i = 0; i < keyList.size(); i++) {
@@ -195,10 +196,6 @@ public class BatchInsertRepositoryBaseClass<T, ID> extends SimpleJpaRepository<T
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }
-        }
-        int total = 0;
-        for (int affect : affects) {
-            total += affect;
         }
         return total;
     }

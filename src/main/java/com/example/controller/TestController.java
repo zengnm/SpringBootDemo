@@ -46,7 +46,7 @@ public class TestController {
             stopWatch.stop();
             return String.format("start:%d, end:%d, mills: %d", result.getFirst().getId(), result.getLast().getId(), stopWatch.getTotalTimeMillis());
         } else {
-            int affect = testDataRepository.batchInsert(list);
+            int affect = testDataRepository.batchInsertGeneratedKey(list);
             stopWatch.stop();
             return String.format("affect:%d, mills:%d", affect, stopWatch.getTotalTimeMillis());
         }
