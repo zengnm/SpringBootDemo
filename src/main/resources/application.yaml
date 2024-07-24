@@ -2,3 +2,8 @@ spring:
   threads:
     virtual:
       enabled: true
+  pulsar:
+    producer:
+      access-mode: exclusive
+    client:
+      service-url: pulsar://10.74.23.49:6650
