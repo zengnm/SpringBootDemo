@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class MyListener {
     private final static Logger LOGGER = LoggerFactory.getLogger(MyListener.class);
 
-    @RabbitListener(queues = "queue.vip.protobuf.test")
+    @RabbitListener(queues = "queue.notice")
     public void listen(byte[] msgBody) throws InvalidProtocolBufferException {
         HelloRequest helloRequest = HelloRequest.parseFrom(msgBody);
         LOGGER.info("Protobuf Message Received:{}", helloRequest);

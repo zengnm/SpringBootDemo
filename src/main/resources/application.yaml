@@ -1,6 +1,7 @@
 spring:
   rabbitmq:
-    addresses: 10.65.78.156:5672,10.65.78.157:5672,10.65.78.158:5672
-    virtual-host: vip
-    username: vip
-    password: 1qaz@WSX
+    addresses: 192.168.194.84:5672
+    virtual-host: notice
+    username: admin
+    password: admin
+    publisher-confirm-type: simple
