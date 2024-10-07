@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * @author zengnianmei
  */
@@ -14,9 +16,15 @@ import org.springframework.stereotype.Component;
 public class MyListener {
     private final static Logger LOGGER = LoggerFactory.getLogger(MyListener.class);
 
-    @RabbitListener(queues = "queue.notice")
+    @RabbitListener(queues = "queue.vip.protobuf.test")
     public void listen(byte[] msgBody) throws InvalidProtocolBufferException {
         HelloRequest helloRequest = HelloRequest.parseFrom(msgBody);
         LOGGER.info("Protobuf Message Received:{}", helloRequest);
+        try {
+            TimeUnit.SECONDS.sleep(61);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        LOGGER.info("Protobuf Message Success");
     }
 }

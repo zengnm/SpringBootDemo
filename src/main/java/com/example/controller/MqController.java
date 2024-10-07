@@ -25,8 +25,8 @@ public class MqController {
 
     @GetMapping("/send")
     public String sendProtobuf() {
-        String exchange = "exchange.notice";
-        String routingKey = "rl.notice";
+        String exchange = "exchange.vip.protobuf.test";
+        String routingKey = "rk.vip.protobuf.test";
         long millis = System.currentTimeMillis();
         HelloRequest build = HelloRequest.newBuilder()
                 .setCode((int) (millis % 100))
