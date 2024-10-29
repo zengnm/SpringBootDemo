@@ -3,13 +3,14 @@ package com.example.persistence;
 import com.example.persistence.entity.TestData;
 import com.example.persistence.entity.TestDataProperty;
 import jakarta.annotation.Resource;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,8 @@ import java.util.stream.IntStream;
 public class JpaTest {
     @Resource
     private TestDataPropertyRepository testDataPropertyRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Test
     public void testDynamicPage() {
@@ -46,8 +49,22 @@ public class JpaTest {
         }
     }
 
-    //    @Resource
-//    private TestDataRepository testDataRepository;
+    @Test
+    @Transactional
+    public void test() {
+        Optional<TestData> optionalTestData = testDataRepository.findByIdNoCache(1L);
+        if (optionalTestData.isPresent()) {
+            System.out.println("before:"+optionalTestData.get().getName());
+            testDataRepository.updateNameById(1L, "aaa");
+            entityManager.clear();
+            optionalTestData = testDataRepository.findByIdNoCache(1L);
+            optionalTestData.ifPresent(e -> System.out.println("after:"+e.getName()));
+        }
+    }
+
+    @Resource
+    private TestDataRepository testDataRepository;
+
     @Test
     public void testSelectPart() {
         TestData optional = testDataRepository.queryPart(1L);
@@ -59,19 +76,19 @@ public class JpaTest {
     public void batchInsert() {
         int start = (int) (System.currentTimeMillis() % 10000000L);
         List<TestData> list = IntStream.rangeClosed(1, 3).boxed().map(i -> {
-            int t = start + i;
-            return new TestData().setName(t + "").setStatus(t);
+            int t = start+i;
+            return new TestData().setName(t+"").setStatus(t);
         }).toList();
         testDataRepository.batchInsertGeneratedKey(list);
 //        testDataRepository.saveAll(list);
-        System.out.println("ids:" + list.stream().map(TestData::getId).toList());
+        System.out.println("ids:"+list.stream().map(TestData::getId).toList());
 //        throw new RuntimeException("1111");
     }
 
     @Resource
     private MockMvc mockMvc;
-    @MockBean
-    private TestDataRepository testDataRepository;
+//    @MockBean
+//    private TestDataRepository testDataRepository;
 
     @Test
     public void mvcTest() throws Exception {
