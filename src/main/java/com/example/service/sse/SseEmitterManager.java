@@ -64,6 +64,7 @@ public class SseEmitterManager {
         return SSE_EMITTER_CACHE.compute(id, (key, old) -> {
             // 提前发送的场景
             if (old != null && old.getConnectedTime() == null) {
+                old.setConnectedTime(System.currentTimeMillis());
                 return old;
             }
             // 同一id的新连接建立，旧连接关闭
