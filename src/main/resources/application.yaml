@@ -5,3 +5,7 @@ spring:
     username: vip
     password: 1qaz@WSX
     publisher-confirm-type: simple
+    listener:
+      simple:
+        consumer-batch-enabled: true
+        batch-size: 3

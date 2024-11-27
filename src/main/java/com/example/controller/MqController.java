@@ -24,6 +24,14 @@ public class MqController {
     private RabbitTemplate rabbitTemplate;
 
     @GetMapping("/send")
+    public String send() {
+        String exchange = "exchange.vip.corerd.test";
+        String routingKey = "rk.vip.corerd.test";
+        rabbitTemplate.send(exchange, routingKey, new Message(UUID.randomUUID().toString().getBytes()));
+        return "success";
+    }
+
+    @GetMapping("/sendProtobuf")
     public String sendProtobuf() {
         String exchange = "exchange.vip.protobuf.test";
         String routingKey = "rk.vip.protobuf.test";
