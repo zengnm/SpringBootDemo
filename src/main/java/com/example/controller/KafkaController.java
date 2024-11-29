@@ -1,7 +1,9 @@
 package com.example.controller;
 
+import com.example.listener.KafkaListenerConfig;
 import com.example.persistence.TestDataRepository;
 import com.example.persistence.entity.TestData;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -18,10 +20,16 @@ import java.util.concurrent.TimeUnit;
 public class KafkaController {
     private final TestDataRepository testDataRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ConcurrentKafkaListenerContainerFactory<byte[], byte[]> containerFactory;
+    private final KafkaListenerConfig kafkaListenerConfig;
 
-    public KafkaController(TestDataRepository testDataRepository, KafkaTemplate<String, String> kafkaTemplate) {
+    public KafkaController(TestDataRepository testDataRepository, KafkaTemplate<String, String> kafkaTemplate,
+                           ConcurrentKafkaListenerContainerFactory<byte[], byte[]> containerFactory,
+                           KafkaListenerConfig kafkaListenerConfig) {
         this.testDataRepository = testDataRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.containerFactory = containerFactory;
+        this.kafkaListenerConfig = kafkaListenerConfig;
     }
 
     @PostMapping("/send")
@@ -42,6 +50,12 @@ public class KafkaController {
         if ("rollback".equals(message)) {
             throw new RuntimeException("触发事务回滚"); // 消息发布在事务中，抛出异常将回滚：消息不发送、数据库不更新
         }
+        return "success";
+    }
+
+    @PostMapping("/addListener")
+    public String addListener(@RequestBody String groupId) {
+        kafkaListenerConfig.kafkaListenerBean(containerFactory, "kafka-demo-simple", groupId, 1);
         return "success";
     }
 }

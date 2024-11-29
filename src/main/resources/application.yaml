@@ -2,11 +2,18 @@ server:
   port: 8080
 spring:
   kafka:
-    bootstrap-servers: localhost:9094
+    bootstrap-servers: 10.74.23.40:9094,10.74.23.41:9094,10.74.23.42:9094
+    properties:
+      security.protocol: SASL_PLAINTEXT
+      sasl.mechanism: SCRAM-SHA-512
+      sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="kafka-qiuer-test" password="RDRMBWzjoRnl";
     consumer:
-      group-id: spring_boot_demo
-    producer:
-      transaction-id-prefix: tx-
+      key-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+    listener:
+      ack-mode: manual
+  #    producer:
+#      transaction-id-prefix: tx-
   jpa:
     database: mysql
     show-sql: true
