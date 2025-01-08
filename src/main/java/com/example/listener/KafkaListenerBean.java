@@ -2,10 +2,11 @@ package com.example.listener;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.support.Acknowledgment;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -13,6 +14,9 @@ import java.util.List;
  */
 public class KafkaListenerBean extends AbstractKafkaListener {
     private int attempts = 3;
+    public int getAttempts() {
+        return attempts;
+    }
 
     public KafkaListenerBean(ConcurrentKafkaListenerContainerFactory<?, ?> containerFactory, String topics, String topicPattern, String groupId, int concurrency, List<String> properties) {
         super(containerFactory, topics, topicPattern, groupId, concurrency, properties);
@@ -21,17 +25,18 @@ public class KafkaListenerBean extends AbstractKafkaListener {
     /**
      * 批量消费和RetryableTopic组合: Non-blocking retries are not supported with Batch Listeners. Since 3.2
      */
-//    @RetryableTopic(attempts = "#{__listener.attempts}")
+    @RetryableTopic(attempts = "#{__listener.attempts}")
     @KafkaListener(containerFactory = "#{__listener.containerFactory}",
             topics = "#{__listener.topics}",
             groupId = "#{__listener.groupId}",
             batch = "true", // 注意batch不支持__listener
             concurrency = "#{__listener.concurrency}",
             properties = "#{__listener.properties}")
-    public void onMessage(List<ConsumerRecord<byte[], byte[]>> records, Acknowledgment acknowledgment) {
-        List<String> values = new ArrayList<>();
-        records.iterator().forEachRemaining(record -> values.add(new String(record.value())));
-        System.out.printf("contents: %s%n", String.join(",", values));
+    public void onMessage(ConsumerRecord<byte[], byte[]> records, Acknowledgment acknowledgment) {
+//        List<String> values = new ArrayList<>();
+//        records.iterator().forEachRemaining(record -> values.add(new String(record.value())));
+//        System.out.printf("contents: %s%n", String.join(",", values));
+        System.out.println(Arrays.toString(records.value()));
         acknowledgment.acknowledge();
     }
 //    public void onMessage(List<byte[]> records, Acknowledgment acknowledgment) {
